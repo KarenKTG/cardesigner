@@ -8,6 +8,7 @@ col1, col2, col3 = st.columns([10.9, 0.2, 10.9])
 
 
 with col1:
+    col1.title("🚗 Knowledge Graph")
     HtmlFile = open("wheel_approach2.html", 'r', encoding='utf-8')
     source_code = HtmlFile.read() 
     components.html(source_code, height=800)
@@ -29,7 +30,7 @@ with col2:
     
 with col3:
 
-    col3.title("💬 Car Designer")
+    col3.title("💬 Car Designer ChatBot")
 
     openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
     option=col3.selectbox('Select Model', ('gpt-4o-mini','gpt-4o', 'gpt-4-turbo'))
