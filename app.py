@@ -4,8 +4,6 @@ from openai import OpenAI
 
 st.set_page_config(layout="wide")
 
-openai_api_key = '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'
-
 col1, col2, col3 = st.columns([10.9, 0.2, 10.9])
 
 
@@ -33,6 +31,7 @@ with col3:
 
     col3.title("💬 Car Designer")
 
+    openai_api_key = st.text_input("OpenAI API Key", key="chatbot_api_key", type="password")
     option=col3.selectbox('Select Model', ('gpt-4o-mini','gpt-4o', 'gpt-4-turbo'))
 
     if "messages" not in st.session_state:
@@ -42,6 +41,9 @@ with col3:
         col3.chat_message(msg["role"]).write(msg["content"])
 
     if prompt := col3.chat_input():
+        if not openai_api_key:
+            st.info("Please add your OpenAI API key to continue.")
+            st.stop()
         
         client = OpenAI(api_key=openai_api_key)
         st.session_state.messages.append({"role": "user", "content": prompt})
