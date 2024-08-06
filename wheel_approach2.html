@@ -1,0 +1,634 @@
+<html>
+    <head>
+        <meta charset="utf-8">
+        
+            <script>function neighbourhoodHighlight(params) {
+  // console.log("in nieghbourhoodhighlight");
+  allNodes = nodes.get({ returnType: "Object" });
+  // originalNodes = JSON.parse(JSON.stringify(allNodes));
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    highlightActive = true;
+    var i, j;
+    var selectedNode = params.nodes[0];
+    var degrees = 2;
+
+    // mark all nodes as hard to read.
+    for (let nodeId in allNodes) {
+      // nodeColors[nodeId] = allNodes[nodeId].color;
+      allNodes[nodeId].color = "rgba(200,200,200,0.5)";
+      if (allNodes[nodeId].hiddenLabel === undefined) {
+        allNodes[nodeId].hiddenLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+    var connectedNodes = network.getConnectedNodes(selectedNode);
+    var allConnectedNodes = [];
+
+    // get the second degree nodes
+    for (i = 1; i < degrees; i++) {
+      for (j = 0; j < connectedNodes.length; j++) {
+        allConnectedNodes = allConnectedNodes.concat(
+          network.getConnectedNodes(connectedNodes[j])
+        );
+      }
+    }
+
+    // all second degree nodes get a different color and their label back
+    for (i = 0; i < allConnectedNodes.length; i++) {
+      // allNodes[allConnectedNodes[i]].color = "pink";
+      allNodes[allConnectedNodes[i]].color = "rgba(150,150,150,0.75)";
+      if (allNodes[allConnectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[allConnectedNodes[i]].label =
+          allNodes[allConnectedNodes[i]].hiddenLabel;
+        allNodes[allConnectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // all first degree nodes get their own color and their label back
+    for (i = 0; i < connectedNodes.length; i++) {
+      // allNodes[connectedNodes[i]].color = undefined;
+      allNodes[connectedNodes[i]].color = nodeColors[connectedNodes[i]];
+      if (allNodes[connectedNodes[i]].hiddenLabel !== undefined) {
+        allNodes[connectedNodes[i]].label =
+          allNodes[connectedNodes[i]].hiddenLabel;
+        allNodes[connectedNodes[i]].hiddenLabel = undefined;
+      }
+    }
+
+    // the main node gets its own color and its label back.
+    // allNodes[selectedNode].color = undefined;
+    allNodes[selectedNode].color = nodeColors[selectedNode];
+    if (allNodes[selectedNode].hiddenLabel !== undefined) {
+      allNodes[selectedNode].label = allNodes[selectedNode].hiddenLabel;
+      allNodes[selectedNode].hiddenLabel = undefined;
+    }
+  } else if (highlightActive === true) {
+    // console.log("highlightActive was true");
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      // allNodes[nodeId].color = "purple";
+      allNodes[nodeId].color = nodeColors[nodeId];
+      // delete allNodes[nodeId].color;
+      if (allNodes[nodeId].hiddenLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].hiddenLabel;
+        allNodes[nodeId].hiddenLabel = undefined;
+      }
+    }
+    highlightActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    // console.log("Nothing was selected");
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        // console.log(allNodes[nodeId]);
+        // allNodes[nodeId].color = {};
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function filterHighlight(params) {
+  allNodes = nodes.get({ returnType: "Object" });
+  // if something is selected:
+  if (params.nodes.length > 0) {
+    filterActive = true;
+    let selectedNodes = params.nodes;
+
+    // hiding all nodes and saving the label
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = true;
+      if (allNodes[nodeId].savedLabel === undefined) {
+        allNodes[nodeId].savedLabel = allNodes[nodeId].label;
+        allNodes[nodeId].label = undefined;
+      }
+    }
+
+    for (let i=0; i < selectedNodes.length; i++) {
+      allNodes[selectedNodes[i]].hidden = false;
+      if (allNodes[selectedNodes[i]].savedLabel !== undefined) {
+        allNodes[selectedNodes[i]].label = allNodes[selectedNodes[i]].savedLabel;
+        allNodes[selectedNodes[i]].savedLabel = undefined;
+      }
+    }
+
+  } else if (filterActive === true) {
+    // reset all nodes
+    for (let nodeId in allNodes) {
+      allNodes[nodeId].hidden = false;
+      if (allNodes[nodeId].savedLabel !== undefined) {
+        allNodes[nodeId].label = allNodes[nodeId].savedLabel;
+        allNodes[nodeId].savedLabel = undefined;
+      }
+    }
+    filterActive = false;
+  }
+
+  // transform the object into an array
+  var updateArray = [];
+  if (params.nodes.length > 0) {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  } else {
+    for (let nodeId in allNodes) {
+      if (allNodes.hasOwnProperty(nodeId)) {
+        updateArray.push(allNodes[nodeId]);
+      }
+    }
+    nodes.update(updateArray);
+  }
+}
+
+function selectNode(nodes) {
+  network.selectNodes(nodes);
+  neighbourhoodHighlight({ nodes: nodes });
+  return nodes;
+}
+
+function selectNodes(nodes) {
+  network.selectNodes(nodes);
+  filterHighlight({nodes: nodes});
+  return nodes;
+}
+
+function highlightFilter(filter) {
+  let selectedNodes = []
+  let selectedProp = filter['property']
+  if (filter['item'] === 'node') {
+    let allNodes = nodes.get({ returnType: "Object" });
+    for (let nodeId in allNodes) {
+      if (allNodes[nodeId][selectedProp] && filter['value'].includes((allNodes[nodeId][selectedProp]).toString())) {
+        selectedNodes.push(nodeId)
+      }
+    }
+  }
+  else if (filter['item'] === 'edge'){
+    let allEdges = edges.get({returnType: 'object'});
+    // check if the selected property exists for selected edge and select the nodes connected to the edge
+    for (let edge in allEdges) {
+      if (allEdges[edge][selectedProp] && filter['value'].includes((allEdges[edge][selectedProp]).toString())) {
+        selectedNodes.push(allEdges[edge]['from'])
+        selectedNodes.push(allEdges[edge]['to'])
+      }
+    }
+  }
+  selectNodes(selectedNodes)
+}</script>
+            <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" integrity="sha512-WgxfT5LWjfszlPHXRmBWHkV2eceiWTOBvrKCNbdgDYTHrT2AeLCGbF4sZlZw3UMN3WtL0tGUoIAKsu8mllg/XA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+            <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" integrity="sha512-LnvoEWDFrqGHlHmDD2101OrLcbsfkrzoSpvtSQtxK3RMnRV0eOkhhBN2dXHKRrUU8p2DGRTk35n4O8nWSVe1mQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+            
+            
+            
+            
+            
+                <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/css/tom-select.min.css" integrity="sha512-43fHB3GLgZfz8QXl1RPQ8O66oIgv3po9cJ5erMt1c4QISq9dYb195T3vr5ImnJPXuVroKcGBPXBFKETW8jrPNQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+                <script src="https://cdnjs.cloudflare.com/ajax/libs/tom-select/2.0.0-rc.4/js/tom-select.complete.js" integrity="sha512-jeF9CfnvzDiw9G9xiksVjxR2lib44Gnovvkv+3CgCG6NXCD4gqlA5nDAVW5WjpA+i+/zKsUWV5xNEbW1X/HH0Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+            
+
+        
+<center>
+<h1></h1>
+</center>
+
+<!-- <link rel="stylesheet" href="../node_modules/vis/dist/vis.min.css" type="text/css" />
+<script type="text/javascript" src="../node_modules/vis/dist/vis.js"> </script>-->
+        <link
+          href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-eOJMYsd53ii+scO/bJGFsiCZc+5NDVN2yr8+0RDqr0Ql0h+rP48ckxlpbzKgwra6"
+          crossorigin="anonymous"
+        />
+        <script
+          src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta3/dist/js/bootstrap.bundle.min.js"
+          integrity="sha384-JEW9xMcG8R+pH31jmWH6WWP0WintQrMb4s7ZOdauHnUtxwoG2vI5DkLtS3qm9Ekf"
+          crossorigin="anonymous"
+        ></script>
+
+
+        <center>
+          <h1></h1>
+        </center>
+        <style type="text/css">
+
+             #mynetwork {
+                 width: 100%;
+                 height: 900px;
+                 background-color: #lalala;
+                 border: 1px solid lightgray;
+                 position: relative;
+                 float: left;
+             }
+
+             
+
+             
+
+             
+        </style>
+    </head>
+
+
+    <body>
+        <div class="card" style="width: 100%">
+            
+                <div id="select-menu" class="card-header">
+                    <div class="row no-gutters">
+                        <div class="col-10 pb-2">
+                            <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="selectNode([value]);"
+                            id="select-node"
+                            placeholder="Select node..."
+                            >
+                                <option selected>Select a Node by ID</option>
+                                
+                                    <option value="wheels">wheels</option>
+                                
+                                    <option value="size">size</option>
+                                
+                                    <option value="design">design</option>
+                                
+                                    <option value="Audi|RS5|">Audi|RS5|</option>
+                                
+                                    <option value="Kia|EV3|">Kia|EV3|</option>
+                                
+                                    <option value="Toyota|RAV4 Plug-in Hybrid|2021">Toyota|RAV4 Plug-in Hybrid|2021</option>
+                                
+                                    <option value="Subaru|WRX TR|2024">Subaru|WRX TR|2024</option>
+                                
+                                    <option value="Mercedes|Electric G-Wagen|2025">Mercedes|Electric G-Wagen|2025</option>
+                                
+                                    <option value="Toyota|GR Supra|2023">Toyota|GR Supra|2023</option>
+                                
+                                    <option value="Honda|Prelude|">Honda|Prelude|</option>
+                                
+                                    <option value="Kia|K4/Cerato/Forte|">Kia|K4/Cerato/Forte|</option>
+                                
+                                    <option value="aesthetic enhancement">aesthetic enhancement</option>
+                                
+                                    <option value="Ford|Mustang|2020">Ford|Mustang|2020</option>
+                                
+                                    <option value="refresh">refresh</option>
+                                
+                                    <option value="quality">quality</option>
+                                
+                                    <option value="off-roading">off-roading</option>
+                                
+                                    <option value="off-road use">off-road use</option>
+                                
+                                    <option value="material">material</option>
+                                
+                                    <option value="huge, low profile tyres">huge, low profile tyres</option>
+                                
+                                    <option value="durability">durability</option>
+                                
+                                    <option value="driving in snow belt">driving in snow belt</option>
+                                
+                                    <option value="Ford|Transit Trail Van|">Ford|Transit Trail Van|</option>
+                                
+                                    <option value="asymmetrical">asymmetrical</option>
+                                
+                                    <option value="appearance">appearance</option>
+                                
+                                    <option value="aerodynamics">aerodynamics</option>
+                                
+                                    <option value="Lexus|IS500|">Lexus|IS500|</option>
+                                
+                                    <option value="LC HE wheels">LC HE wheels</option>
+                                
+                                    <option value="22-inch wheels">22-inch wheels</option>
+                                
+                                    <option value="Honda|Civic Si|2019">Honda|Civic Si|2019</option>
+                                
+                                    <option value="Dodge|Charger|1969">Dodge|Charger|1969</option>
+                                
+                                    <option value="Toyota|GR 86|2022">Toyota|GR 86|2022</option>
+                                
+                                    <option value="Subaru|WRX STI|2018">Subaru|WRX STI|2018</option>
+                                
+                                    <option value="Porsche|Cayenne|2024">Porsche|Cayenne|2024</option>
+                                
+                                    <option value="Nissan|370Z|">Nissan|370Z|</option>
+                                
+                                    <option value="Hyundai|i30n|">Hyundai|i30n|</option>
+                                
+                                    <option value="Mercedes|AMG G63|2025">Mercedes|AMG G63|2025</option>
+                                
+                                    <option value="Lexus|LX570|2021">Lexus|LX570|2021</option>
+                                
+                                    <option value="turning mechanism">turning mechanism</option>
+                                
+                            </select>
+                        </div>
+                        <div class="col-2 pb-2">
+                            <button type="button" class="btn btn-primary btn-block" onclick="neighbourhoodHighlight({nodes: []});">Reset Selection</button>
+                        </div>
+                    </div>
+                </div>
+            
+            
+              <div id="filter-menu" class="card-header">
+                <div class="row no-gutters">
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'item')"
+                            id="select-item"
+                        >
+                        <option value="">Select a network item</option>
+                        <option value="edge">edge</option>
+                        <option value="node">node</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            onchange="updateFilter(value, 'property')"
+                            id="select-property"
+                        >
+                        <option value="">Select a property...</option>
+                    </select>
+                  </div>
+                  <div class="col-3 pb-2">
+                    <select
+                            class="form-select"
+                            aria-label="Default select example"
+                            id="select-value"
+                        >
+                        <option value="">Select value(s)...</option>
+                    </select>
+                  </div>
+                  <div class="col-1 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="highlightFilter(filter);">Filter</button>
+                  </div>
+                  <div class="col-2 pb-2">
+                    <button type="button" class="btn btn-primary btn-block" onclick="clearFilter(true)">Reset Selection</button>
+                  </div>
+                </div>
+              </div>
+            
+            <div id="mynetwork" class="card-body"></div>
+        </div>
+
+        
+        
+
+        <script type="text/javascript">
+
+              // initialize global variables.
+              var edges;
+              var nodes;
+              var allNodes;
+              var allEdges;
+              var nodeColors;
+              var originalNodes;
+              var network;
+              var container;
+              var options, data;
+              var filter = {
+                  item : '',
+                  property : '',
+                  value : []
+              };
+
+              
+                  new TomSelect("#select-node",{
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      }
+                  });
+              
+
+              
+                  // explicitly using onItemAdd and this function as we need to save multiple values
+                  let updateValueFilter = function() {
+                      return function () {
+                      filter['value'].push(arguments[0])
+                      }
+                  }
+
+                  let valueControl = new TomSelect("#select-value",{
+                      maxItems: null,
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: updateValueFilter()
+                  });
+
+                  let addValues = function() {
+                      return function () {
+                          // clear the current value options and add the selected attribute values
+                          // tom-select handles duplicates
+                          let selectedProperty = arguments[0];
+                          valueControl.clear();
+                          valueControl.clearOptions();
+                          filter['value'] = []
+                          if (filter['item'] === 'node') {
+                              for (let each in allNodes) {
+                                  valueControl.addOption({
+                                      id:allNodes[each][selectedProperty],
+                                      title:allNodes[each][selectedProperty]
+                                  })
+                              }
+                          }
+                          else if (filter['item'] === 'edge') {
+                              for (let each in allEdges) {
+                                  valueControl.addOption({
+                                      id:allEdges[each][selectedProperty],
+                                      title:allEdges[each][selectedProperty]
+                                  })
+                              }
+                          }
+                      }
+                  };
+
+                  let propControl = new TomSelect("#select-property",{
+                      valueField: 'id',
+                      labelField: 'title',
+                      searchField: 'title',
+                      create: false,
+                      sortField: {
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addValues()
+                  });
+
+                  let addProperties = function() {
+                      return function () {
+                          // loops through the selected network item and adds the attributes to dropdown
+                          // tom-select handles duplicates
+                          clearFilter(false)
+                          if (arguments[0] === 'edge') {
+                              for (let each in allEdges) {
+                                  if (allEdges.hasOwnProperty(each)) {
+                                      for (let eachProp in allEdges[each]) {
+                                          if (allEdges[each].hasOwnProperty(eachProp)) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                          else if (arguments[0] === 'node') {
+                              for (let each in allNodes) {
+                                  if (allNodes.hasOwnProperty(each)) {
+                                      for (let eachProp in allNodes[each]) {
+                                          if (allNodes[each].hasOwnProperty(eachProp)
+                                              && (eachProp !== 'hidden' && eachProp !== 'savedLabel'
+                                                  && eachProp !== 'hiddenLabel')) {
+                                              propControl.addOption({id: eachProp, title: eachProp})
+
+                                          }
+                                      }
+                                  }
+                              }
+                          }
+                      }
+                  };
+
+                  let itemControl = new TomSelect("#select-item",{
+                      create: false,
+                      sortField:{
+                          field: "text",
+                          direction: "asc"
+                      },
+                      onItemAdd: addProperties()
+                  });
+
+                  function clearFilter(reset) {
+                      // utility function to clear all the selected filter options
+                      // if reset is set to true, the existing filter will be removed
+                      // else, only the dropdown options are cleared
+                      propControl.clear();
+                      propControl.clearOptions();
+                      valueControl.clear();
+                      valueControl.clearOptions();
+                      filter = {
+                          item : '',
+                          property : '',
+                          value : []
+                      }
+                      if (reset) {
+                          itemControl.clear();
+                          filterHighlight({nodes: []})
+                      }
+                  }
+
+                  function updateFilter(value, key) {
+                      // key could be 'item' or 'property' and value is as selected in dropdown
+                      filter[key] = value
+                  }
+
+              
+
+              // This method is responsible for drawing the graph, returns the drawn network
+              function drawGraph() {
+                  var container = document.getElementById('mynetwork');
+
+                  
+
+                  // parsing and collecting nodes and edges from the python
+                  nodes = new vis.DataSet([{"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "wheels", "label": "wheels", "shape": "dot", "size": 24, "title": "wheels"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "size", "label": "size", "shape": "dot", "size": 6, "title": "size"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "design", "label": "design", "shape": "dot", "size": 6, "title": "design"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Audi|RS5|", "label": "Audi|RS5|", "shape": "dot", "size": 6, "title": "Audi|RS5|"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Kia|EV3|", "label": "Kia|EV3|", "shape": "dot", "size": 6, "title": "Kia|EV3|"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Toyota|RAV4 Plug-in Hybrid|2021", "label": "Toyota|RAV4 Plug-in Hybrid|2021", "shape": "dot", "size": 6, "title": "Toyota|RAV4 Plug-in Hybrid|2021"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Subaru|WRX TR|2024", "label": "Subaru|WRX TR|2024", "shape": "dot", "size": 6, "title": "Subaru|WRX TR|2024"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Mercedes|Electric G-Wagen|2025", "label": "Mercedes|Electric G-Wagen|2025", "shape": "dot", "size": 6, "title": "Mercedes|Electric G-Wagen|2025"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Toyota|GR Supra|2023", "label": "Toyota|GR Supra|2023", "shape": "dot", "size": 6, "title": "Toyota|GR Supra|2023"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Honda|Prelude|", "label": "Honda|Prelude|", "shape": "dot", "size": 6, "title": "Honda|Prelude|"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Kia|K4/Cerato/Forte|", "label": "Kia|K4/Cerato/Forte|", "shape": "dot", "size": 6, "title": "Kia|K4/Cerato/Forte|"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "aesthetic enhancement", "label": "aesthetic enhancement", "shape": "dot", "size": 6, "title": "aesthetic enhancement"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Ford|Mustang|2020", "label": "Ford|Mustang|2020", "shape": "dot", "size": 6, "title": "Ford|Mustang|2020"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "refresh", "label": "refresh", "shape": "dot", "size": 6, "title": "refresh"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "quality", "label": "quality", "shape": "dot", "size": 6, "title": "quality"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "off-roading", "label": "off-roading", "shape": "dot", "size": 6, "title": "off-roading"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "off-road use", "label": "off-road use", "shape": "dot", "size": 6, "title": "off-road use"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "material", "label": "material", "shape": "dot", "size": 6, "title": "material"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "huge, low profile tyres", "label": "huge, low profile tyres", "shape": "dot", "size": 6, "title": "huge, low profile tyres"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "durability", "label": "durability", "shape": "dot", "size": 6, "title": "durability"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "driving in snow belt", "label": "driving in snow belt", "shape": "dot", "size": 6, "title": "driving in snow belt"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Ford|Transit Trail Van|", "label": "Ford|Transit Trail Van|", "shape": "dot", "size": 6, "title": "Ford|Transit Trail Van|"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "asymmetrical", "label": "asymmetrical", "shape": "dot", "size": 6, "title": "asymmetrical"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "appearance", "label": "appearance", "shape": "dot", "size": 6, "title": "appearance"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "aerodynamics", "label": "aerodynamics", "shape": "dot", "size": 6, "title": "aerodynamics"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Lexus|IS500|", "label": "Lexus|IS500|", "shape": "dot", "size": 6, "title": "Lexus|IS500|"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "LC HE wheels", "label": "LC HE wheels", "shape": "dot", "size": 6, "title": "LC HE wheels"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "22-inch wheels", "label": "22-inch wheels", "shape": "dot", "size": 6, "title": "22-inch wheels"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Honda|Civic Si|2019", "label": "Honda|Civic Si|2019", "shape": "dot", "size": 6, "title": "Honda|Civic Si|2019"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Dodge|Charger|1969", "label": "Dodge|Charger|1969", "shape": "dot", "size": 6, "title": "Dodge|Charger|1969"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Toyota|GR 86|2022", "label": "Toyota|GR 86|2022", "shape": "dot", "size": 6, "title": "Toyota|GR 86|2022"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Subaru|WRX STI|2018", "label": "Subaru|WRX STI|2018", "shape": "dot", "size": 6, "title": "Subaru|WRX STI|2018"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Porsche|Cayenne|2024", "label": "Porsche|Cayenne|2024", "shape": "dot", "size": 6, "title": "Porsche|Cayenne|2024"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Nissan|370Z|", "label": "Nissan|370Z|", "shape": "dot", "size": 6, "title": "Nissan|370Z|"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Hyundai|i30n|", "label": "Hyundai|i30n|", "shape": "dot", "size": 6, "title": "Hyundai|i30n|"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Mercedes|AMG G63|2025", "label": "Mercedes|AMG G63|2025", "shape": "dot", "size": 6, "title": "Mercedes|AMG G63|2025"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "Lexus|LX570|2021", "label": "Lexus|LX570|2021", "shape": "dot", "size": 6, "title": "Lexus|LX570|2021"}, {"color": "#97c2fc", "font": {"color": "#cccccc"}, "id": "turning mechanism", "label": "turning mechanism", "shape": "dot", "size": 6, "title": "turning mechanism"}]);
+                  edges = new vis.DataSet([{"color": "#57db57", "from": "wheels", "negative_ratio": 9, "positive_count": 2, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 2\n Negative Count: 9", "to": "size", "width": 13}, {"color": "#57db57", "from": "wheels", "negative_ratio": 8, "positive_count": 5, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 5\n Negative Count: 8", "to": "design", "width": 13}, {"color": "#db57db", "from": "wheels", "negative_ratio": 6, "positive_count": 1, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 1\n Negative Count: 6", "to": "Audi|RS5|", "width": 7}, {"color": "#db57db", "from": "wheels", "negative_ratio": 5, "positive_count": 2, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 2\n Negative Count: 5", "to": "Kia|EV3|", "width": 7}, {"color": "#db57db", "from": "wheels", "negative_ratio": 3, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 3", "to": "Toyota|RAV4 Plug-in Hybrid|2021", "width": 3}, {"color": "#db57db", "from": "wheels", "negative_ratio": 2, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 2", "to": "Subaru|WRX TR|2024", "width": 2}, {"color": "#db57db", "from": "wheels", "negative_ratio": 1, "positive_count": 1, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 1\n Negative Count: 1", "to": "Mercedes|Electric G-Wagen|2025", "width": 2}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 2, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 2\n Negative Count: 0", "to": "Toyota|GR Supra|2023", "width": 2}, {"color": "#db57db", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 1", "to": "Honda|Prelude|", "width": 2}, {"color": "#db57db", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 1", "to": "Kia|K4/Cerato/Forte|", "width": 1}, {"color": "#57bcdb", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "used_for", "title": "Relationship:used_for\n Positive: 1\n Negative Count: 0", "to": "aesthetic enhancement", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 1\n Negative Count: 0", "to": "Ford|Mustang|2020", "width": 1}, {"color": "#57bcdb", "from": "wheels", "negative_ratio": 0, "positive_count": 0, "relationship": "used_for", "title": "Relationship:used_for\n Positive: 0\n Negative Count: 0", "to": "refresh", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 0\n Negative Count: 1", "to": "quality", "width": 1}, {"color": "#57bcdb", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "used_for", "title": "Relationship:used_for\n Positive: 0\n Negative Count: 1", "to": "off-roading", "width": 1}, {"color": "#57bcdb", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "used_for", "title": "Relationship:used_for\n Positive: 1\n Negative Count: 0", "to": "off-road use", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 1\n Negative Count: 0", "to": "material", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 0\n Negative Count: 1", "to": "huge, low profile tyres", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 0\n Negative Count: 1", "to": "durability", "width": 1}, {"color": "#57bcdb", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "used_for", "title": "Relationship:used_for\n Positive: 0\n Negative Count: 1", "to": "driving in snow belt", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 1\n Negative Count: 0", "to": "Ford|Transit Trail Van|", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 0\n Negative Count: 1", "to": "asymmetrical", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 0\n Negative Count: 1", "to": "appearance", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 1\n Negative Count: 0", "to": "aerodynamics", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 1", "to": "Lexus|IS500|", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 0, "positive_count": 0, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 0\n Negative Count: 0", "to": "LC HE wheels", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 1\n Negative Count: 0", "to": "22-inch wheels", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 1", "to": "Honda|Civic Si|2019", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 0", "to": "Dodge|Charger|1969", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 0", "to": "Toyota|GR 86|2022", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 0", "to": "Subaru|WRX STI|2018", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 1", "to": "Porsche|Cayenne|2024", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 1\n Negative Count: 0", "to": "Nissan|370Z|", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 1, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 1\n Negative Count: 0", "to": "Hyundai|i30n|", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 1, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 1", "to": "Mercedes|AMG G63|2025", "width": 1}, {"color": "#db57db", "from": "wheels", "negative_ratio": 0, "positive_count": 0, "relationship": "has_feature", "title": "Relationship:has_feature\n Positive: 0\n Negative Count: 0", "to": "Lexus|LX570|2021", "width": 1}, {"color": "#57db57", "from": "wheels", "negative_ratio": 0, "positive_count": 0, "relationship": "has_attribute", "title": "Relationship:has_attribute\n Positive: 0\n Negative Count: 0", "to": "turning mechanism", "width": 1}]);
+
+                  nodeColors = {};
+                  allNodes = nodes.get({ returnType: "Object" });
+                  for (nodeId in allNodes) {
+                    nodeColors[nodeId] = allNodes[nodeId].color;
+                  }
+                  allEdges = edges.get({ returnType: "Object" });
+                  // adding nodes and edges to the graph
+                  data = {nodes: nodes, edges: edges};
+
+                  var options = {
+    "configure": {
+        "enabled": false
+    },
+    "edges": {
+        "color": {
+            "inherit": true
+        },
+        "smooth": {
+            "enabled": true,
+            "type": "dynamic"
+        }
+    },
+    "interaction": {
+        "dragNodes": true,
+        "hideEdgesOnDrag": false,
+        "hideNodesOnDrag": false
+    },
+    "physics": {
+        "enabled": true,
+        "repulsion": {
+            "centralGravity": 0.2,
+            "damping": 0.09,
+            "nodeDistance": 150,
+            "springConstant": 0.05,
+            "springLength": 400
+        },
+        "solver": "repulsion",
+        "stabilization": {
+            "enabled": true,
+            "fit": true,
+            "iterations": 1000,
+            "onlyDynamicEdges": false,
+            "updateInterval": 50
+        }
+    }
+};
+
+                  
+
+
+                  
+
+                  network = new vis.Network(container, data, options);
+
+                  
+
+                  
+                    network.on("selectNode", neighbourhoodHighlight);
+                  
+
+                  
+
+
+                  
+
+                  return network;
+
+              }
+              drawGraph();
+        </script>
+    </body>
+</html>
