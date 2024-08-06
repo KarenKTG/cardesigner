@@ -12,7 +12,7 @@ col1, col2, col3 = st.columns([10.9, 0.2, 10.9])
 with col1:
     HtmlFile = open("wheel_approach2.html", 'r', encoding='utf-8')
     source_code = HtmlFile.read() 
-    components.html(source_code, height = 900,width=900)
+    components.html(source_code, height = 1, width=1)
     
 with col2:
 
